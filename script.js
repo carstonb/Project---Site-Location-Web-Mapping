@@ -7,7 +7,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 // Define custom icons
 const plantIcon = L.icon({
   iconUrl: 'Images/cow.png', // Ensure this path is correct
-  iconSize: [25, 30],
+  iconSize: [25, 41], // Adjust these values to change the size
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
   shadowSize: [41, 41]
@@ -15,7 +15,7 @@ const plantIcon = L.icon({
 
 const hqIcon = L.icon({
   iconUrl: 'Images/HQ.png', // Ensure this path is correct
-  iconSize: [25, 25],
+  iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
   shadowSize: [41, 41]
@@ -176,29 +176,13 @@ specificConnections.forEach(connection => {
 
 // Function to show/hide lines and distance labels connected to a site
 function toggleLinesAndLabels(site, lines, show) {
-lines.forEach(({ line, distanceLabel, site1, site2 }) => {
-  if (site === site1 || site === site2) {
-    line.setStyle({ opacity: show ? 0.5 : 0 });
-    distanceLabel.setOpacity(show ? 1 : 0);
-  }
-});
+  lines.forEach(({ line, distanceLabel, site1, site2 }) => {
+    if (site === site1 || site === site2) {
+      line.setStyle({ opacity: show ? 0.5 : 0 });
+      distanceLabel.setOpacity(show ? 1 : 0);
+    }
+  });
 }
-
-// Add hover event listeners to markers
-sites.forEach(site => {
-const marker = L.marker(site.coords, { icon: site.type === 'plant' ? plantIcon : hqIcon }).addTo(map)
-  .bindPopup(site.name);
-
-marker.on('mouseover', function() {
-  toggleLinesAndLabels(site, usaLines, true);
-  toggleLinesAndLabels(site, mexicoLines, true);
-});
-
-marker.on('mouseout', function() {
-  toggleLinesAndLabels(site, usaLines, false);
-  toggleLinesAndLabels(site, mexicoLines, false);
-});
-});
 
 // Toggle for connecting Mexico sites to the USA
 let connectMexicoToUSAToggle = false;
@@ -206,53 +190,80 @@ let mexicoToUSALines = [];
 let mexicoToUSADistanceLabels = [];
 
 function toggleConnectMexicoToUSA() {
-connectMexicoToUSAToggle = !connectMexicoToUSAToggle;
+  connectMexicoToUSAToggle = !connectMexicoToUSAToggle;
 
-if (connectMexicoToUSAToggle) {
-  // Connect Mexico to the closest USA plant
-  sites.filter(site => site.region === 'Mexico').forEach((mexicoPlant) => {
-    let closestUSASite = null;
-    let closestDistance = Infinity;
+  const button = document.querySelector('.toggle-button button');
+  if (connectMexicoToUSAToggle) {
+    button.style.backgroundColor = 'green';
+    button.innerHTML = 'Disconnect Mexico to USA Connections';
 
-    sites.filter(site => site.region === 'USA').forEach((usaPlant) => {
-      const distance = calculateDistance(mexicoPlant.coords, usaPlant.coords);
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closestUSASite = usaPlant;
+    // Connect Mexico to the closest USA plant
+    sites.filter(site => site.region === 'Mexico').forEach((mexicoPlant) => {
+      let closestUSASite = null;
+      let closestDistance = Infinity;
+
+      sites.filter(site => site.region === 'USA').forEach((usaPlant) => {
+        const distance = calculateDistance(mexicoPlant.coords, usaPlant.coords);
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestUSASite = usaPlant;
+        }
+      });
+
+      if (closestUSASite) {
+        const line = L.polyline([mexicoPlant.coords, closestUSASite.coords], { color: 'green', weight: 2, opacity: 0 }).addTo(map); // Different color line
+        mexicoToUSALines.push({ line, site1: mexicoPlant, site2: closestUSASite });
+        const midPoint = [
+          (mexicoPlant.coords[0] + closestUSASite.coords[0]) / 2,
+          (mexicoPlant.coords[1] + closestUSASite.coords[1]) / 2
+        ];
+        const distanceLabel = L.marker(midPoint, {
+          icon: L.divIcon({
+            className: 'distance-label',
+            html: `${Math.round(closestDistance)}`
+          })
+        }).addTo(map);
+        distanceLabel.setOpacity(0); // Initially invisible
+        mexicoToUSADistanceLabels.push(distanceLabel);
       }
     });
+  } else {
+    button.style.backgroundColor = '';
+    button.innerHTML = 'Connect Mexico to USA Connections';
 
-    if (closestUSASite) {
-      const line = L.polyline([mexicoPlant.coords, closestUSASite.coords], { color: 'green', weight: 2, opacity: 0 }).addTo(map); // Different color line
-      mexicoToUSALines.push(line);
-      const midPoint = [
-        (mexicoPlant.coords[0] + closestUSASite.coords[0]) / 2,
-        (mexicoPlant.coords[1] + closestUSASite.coords[1]) / 2
-      ];
-      const distanceLabel = L.marker(midPoint, {
-        icon: L.divIcon({
-          className: 'distance-label',
-          html: `${Math.round(closestDistance)}`
-        })
-      }).addTo(map);
-      distanceLabel.setOpacity(0); // Initially invisible
-      mexicoToUSADistanceLabels.push(distanceLabel);
-    }
+    // Remove Mexico to USA connections
+    mexicoToUSALines.forEach(({ line }) => map.removeLayer(line));
+    mexicoToUSADistanceLabels.forEach(label => map.removeLayer(label));
+    mexicoToUSALines = [];
+    mexicoToUSADistanceLabels = [];
+  }
+}
+
+// Add hover event listeners to markers
+sites.forEach(site => {
+  const marker = L.marker(site.coords, { icon: site.type === 'plant' ? plantIcon : hqIcon }).addTo(map)
+    .bindPopup(site.name);
+
+  marker.on('mouseover', function() {
+    toggleLinesAndLabels(site, usaLines, true);
+    toggleLinesAndLabels(site, mexicoLines, true);
+    toggleLinesAndLabels(site, mexicoToUSALines, true); // Ensure Mexico to USA lines are shown
+    toggleLinesAndLabels(site, mexicoToUSADistanceLabels, true); // Ensure Mexico to USA distance labels are shown
   });
-} else {
-  // Remove Mexico to USA connections
-  mexicoToUSALines.forEach(line => map.removeLayer(line));
-  mexicoToUSADistanceLabels.forEach(label => map.removeLayer(label));
-  mexicoToUSALines = [];
-  mexicoToUSADistanceLabels = [];
-}
-}
+
+  marker.on('mouseout', function() {
+    toggleLinesAndLabels(site, usaLines, false);
+    toggleLinesAndLabels(site, mexicoLines, false);
+    toggleLinesAndLabels(site, mexicoToUSALines, false); // Ensure Mexico to USA lines are hidden
+    toggleLinesAndLabels(site, mexicoToUSADistanceLabels, false); // Ensure Mexico to USA distance labels are hidden
+  });
+});
 
 // Add a button to toggle Mexico to USA connections
 const toggleButton = L.control({ position: 'topright' });
 toggleButton.onAdd = function () {
-const div = L.DomUtil.create('div', 'toggle-button');
-div.innerHTML = '<button onclick="toggleConnectMexicoToUSA()">Toggle Mexico to USA Connections</button>';
-return div;
+  const div = L.DomUtil.create('div', 'toggle-button');
+  div.innerHTML = '<button onclick="toggleConnectMexicoToUSA()">Connect Mexico to USA Connections</button>';
+  return div;
 };
 toggleButton.addTo(map);
