@@ -7,7 +7,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 // Define custom icons
 const plantIcon = L.icon({
   iconUrl: 'Images/cow.png', // Ensure this path is correct
-  iconSize: [25, 41],
+  iconSize: [25, 30],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
   shadowSize: [41, 41]
@@ -15,7 +15,7 @@ const plantIcon = L.icon({
 
 const hqIcon = L.icon({
   iconUrl: 'Images/HQ.png', // Ensure this path is correct
-  iconSize: [25, 41],
+  iconSize: [25, 25],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
   shadowSize: [41, 41]
