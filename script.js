@@ -41,7 +41,7 @@ const sites = [
   { name: 'Omnisharp', coords: [30.4604802, -97.6551371], type: 'hq' },
   // Sharpening Centers
   { name: 'Springdale', coords: [36.1907351, -94.4742007], type: 'SaaS' },
-  { name: 'CES', coords: [46.138639, -118.912746], type: 'SaaS' },
+  { name: 'CES', coords: [53.4722462, -2.3793467], type: 'SaaS' },
   // International - Mexico
   { name: 'Keken ', coords: [20.9861173, -89.7936814], type: 'plant', region: 'Mexico' },
   { name: 'Proan', coords: [20.6740117, -103.4179727], type: 'plant', region: 'Mexico' },
@@ -75,26 +75,32 @@ sites.forEach(site => {
 function connectPlants(region, lineColor) {
   const plants = sites.filter(site => site.type === 'plant' && site.region === region);
   const connectedPlants = new Set();
+  const lines = [];
 
   plants.forEach((site) => {
-    let closestSite = null;
-    let closestDistance = Infinity;
+    let closestSites = [];
+    let closestDistances = [];
 
     plants.forEach((otherSite) => {
       if (site !== otherSite) {
         const distance = calculateDistance(site.coords, otherSite.coords);
-        if (distance < closestDistance) {
-          closestDistance = distance;
-          closestSite = otherSite;
-        }
+        closestSites.push(otherSite);
+        closestDistances.push(distance);
       }
     });
 
-    if (closestSite) {
+    // Sort by distance and select the closest sites
+    const sortedIndices = closestDistances.map((distance, index) => [distance, index])
+                                          .sort(([a], [b]) => a - b)
+                                          .map(([, index]) => index);
+
+    // Ensure at least one connection
+    if (sortedIndices.length > 0) {
+      const closestSite = closestSites[sortedIndices[0]];
       connectedPlants.add(site);
       connectedPlants.add(closestSite);
 
-      const line = L.polyline([site.coords, closestSite.coords], { color: lineColor, weight: 2 }).addTo(map); // Thinner line
+      const line = L.polyline([site.coords, closestSite.coords], { color: lineColor, weight: 2, opacity: 0 }).addTo(map);
       const midPoint = [
         (site.coords[0] + closestSite.coords[0]) / 2,
         (site.coords[1] + closestSite.coords[1]) / 2
@@ -102,55 +108,97 @@ function connectPlants(region, lineColor) {
       const distanceLabel = L.marker(midPoint, {
         icon: L.divIcon({
           className: 'distance-label',
-          html: `${Math.round(closestDistance)} miles` // Whole numbers without fractions
+          html: `${Math.round(closestDistances[sortedIndices[0]])}`
         })
       }).addTo(map);
-      connectedPlants.add(distanceLabel);
+      distanceLabel.setOpacity(0); // Initially invisible
+      lines.push({ line, distanceLabel, site1: site, site2: closestSite });
+    }
+
+    // Add additional connections if necessary
+    for (let i = 1; i < Math.min(3, sortedIndices.length); i++) {
+      const additionalSite = closestSites[sortedIndices[i]];
+      connectedPlants.add(additionalSite);
+
+      const line = L.polyline([site.coords, additionalSite.coords], { color: lineColor, weight: 2, opacity: 0 }).addTo(map);
+      const midPoint = [
+        (site.coords[0] + additionalSite.coords[0]) / 2,
+        (site.coords[1] + additionalSite.coords[1]) / 2
+      ];
+      const distanceLabel = L.marker(midPoint, {
+        icon: L.divIcon({
+          className: 'distance-label',
+          html: `${Math.round(closestDistances[sortedIndices[i]])}`
+        })
+      }).addTo(map);
+      distanceLabel.setOpacity(0); // Initially invisible
+      lines.push({ line, distanceLabel, site1: site, site2: additionalSite });
     }
   });
 
-  // Ensure each plant has at least one connection
-  plants.forEach((site) => {
-    if (!connectedPlants.has(site)) {
-      let closestSite = null;
-      let closestDistance = Infinity;
-
-      plants.forEach((otherSite) => {
-        if (site !== otherSite) {
-          const distance = calculateDistance(site.coords, otherSite.coords);
-          if (distance < closestDistance) {
-            closestDistance = distance;
-            closestSite = otherSite;
-          }
-        }
-      });
-
-      if (closestSite) {
-        connectedPlants.add(site);
-        connectedPlants.add(closestSite);
-
-        const line = L.polyline([site.coords, closestSite.coords], { color: lineColor, weight: 2 }).addTo(map); // Thinner line
-        const midPoint = [
-          (site.coords[0] + closestSite.coords[0]) / 2,
-          (site.coords[1] + closestSite.coords[1]) / 2
-        ];
-        const distanceLabel = L.marker(midPoint, {
-          icon: L.divIcon({
-            className: 'distance-label',
-            html: `${Math.round(closestDistance)} miles` // Whole numbers without fractions
-          })
-        }).addTo(map);
-        connectedPlants.add(distanceLabel);
-      }
-    }
-  });
+  return lines;
 }
 
 // Connect USA plants
-connectPlants('USA', 'blue');
+const usaLines = connectPlants('USA', 'blue');
 
 // Connect Mexico plants with red lines and distance labels
-connectPlants('Mexico', 'red');
+const mexicoLines = connectPlants('Mexico', 'red');
+
+// Add specific distances
+const specificConnections = [
+  { from: 'Storm Lake', to: 'Joslin' },
+  { from: 'Plainwell', to: 'Souderton' },
+  { from: 'Finney County', to: 'Lexington' }
+];
+
+specificConnections.forEach(connection => {
+  const fromSite = sites.find(site => site.name === connection.from);
+  const toSite = sites.find(site => site.name === connection.to);
+
+  if (fromSite && toSite) {
+    const distance = calculateDistance(fromSite.coords, toSite.coords);
+    const line = L.polyline([fromSite.coords, toSite.coords], { color: 'blue', weight: 2, opacity: 0 }).addTo(map);
+    const midPoint = [
+      (fromSite.coords[0] + toSite.coords[0]) / 2,
+      (fromSite.coords[1] + toSite.coords[1]) / 2
+    ];
+    const distanceLabel = L.marker(midPoint, {
+      icon: L.divIcon({
+        className: 'distance-label',
+        html: `${Math.round(distance)}`
+      })
+    }).addTo(map);
+    distanceLabel.setOpacity(0); // Initially invisible
+    usaLines.push({ line, distanceLabel, site1: fromSite, site2: toSite });
+  }
+});
+
+// Function to show/hide lines and distance labels connected to a site
+function toggleLinesAndLabels(site, lines, show) {
+lines.forEach(({ line, distanceLabel, site1, site2 }) => {
+  if (site === site1 || site === site2) {
+    line.setStyle({ opacity: show ? 0.5 : 0 });
+    distanceLabel.setOpacity(show ? 1 : 0);
+  }
+});
+}
+
+// Add hover event listeners to markers
+sites.forEach(site => {
+const marker = L.marker(site.coords, { icon: site.type === 'plant' ? plantIcon : hqIcon }).addTo(map)
+  .bindPopup(site.name);
+
+marker.on('mouseover', function() {
+  toggleLinesAndLabels(site, usaLines, true);
+  toggleLinesAndLabels(site, mexicoLines, true);
+});
+
+marker.on('mouseout', function() {
+  toggleLinesAndLabels(site, usaLines, false);
+  toggleLinesAndLabels(site, mexicoLines, false);
+});
+});
 
 // Toggle for connecting Mexico sites to the USA
 let connectMexicoToUSAToggle = false;
@@ -158,52 +206,53 @@ let mexicoToUSALines = [];
 let mexicoToUSADistanceLabels = [];
 
 function toggleConnectMexicoToUSA() {
-  connectMexicoToUSAToggle = !connectMexicoToUSAToggle;
+connectMexicoToUSAToggle = !connectMexicoToUSAToggle;
 
-  if (connectMexicoToUSAToggle) {
-    // Connect Mexico to the closest USA plant
-    sites.filter(site => site.region === 'Mexico').forEach((mexicoPlant) => {
-      let closestUSASite = null;
-      let closestDistance = Infinity;
+if (connectMexicoToUSAToggle) {
+  // Connect Mexico to the closest USA plant
+  sites.filter(site => site.region === 'Mexico').forEach((mexicoPlant) => {
+    let closestUSASite = null;
+    let closestDistance = Infinity;
 
-      sites.filter(site => site.region === 'USA').forEach((usaPlant) => {
-        const distance = calculateDistance(mexicoPlant.coords, usaPlant.coords);
-        if (distance < closestDistance) {
-          closestDistance = distance;
-          closestUSASite = usaPlant;
-        }
-      });
-
-      if (closestUSASite) {
-        const line = L.polyline([mexicoPlant.coords, closestUSASite.coords], { color: 'green', weight: 2 }).addTo(map); // Different color line
-        mexicoToUSALines.push(line);
-        const midPoint = [
-          (mexicoPlant.coords[0] + closestUSASite.coords[0]) / 2,
-          (mexicoPlant.coords[1] + closestUSASite.coords[1]) / 2
-        ];
-        const distanceLabel = L.marker(midPoint, {
-          icon: L.divIcon({
-            className: 'distance-label',
-            html: `${Math.round(closestDistance)} miles` // Whole numbers without fractions
-          })
-        }).addTo(map);
-        mexicoToUSADistanceLabels.push(distanceLabel);
+    sites.filter(site => site.region === 'USA').forEach((usaPlant) => {
+      const distance = calculateDistance(mexicoPlant.coords, usaPlant.coords);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestUSASite = usaPlant;
       }
     });
-  } else {
-    // Remove Mexico to USA connections
-    mexicoToUSALines.forEach(line => map.removeLayer(line));
-    mexicoToUSADistanceLabels.forEach(label => map.removeLayer(label));
-    mexicoToUSALines = [];
-    mexicoToUSADistanceLabels = [];
-  }
+
+    if (closestUSASite) {
+      const line = L.polyline([mexicoPlant.coords, closestUSASite.coords], { color: 'green', weight: 2, opacity: 0 }).addTo(map); // Different color line
+      mexicoToUSALines.push(line);
+      const midPoint = [
+        (mexicoPlant.coords[0] + closestUSASite.coords[0]) / 2,
+        (mexicoPlant.coords[1] + closestUSASite.coords[1]) / 2
+      ];
+      const distanceLabel = L.marker(midPoint, {
+        icon: L.divIcon({
+          className: 'distance-label',
+          html: `${Math.round(closestDistance)}`
+        })
+      }).addTo(map);
+      distanceLabel.setOpacity(0); // Initially invisible
+      mexicoToUSADistanceLabels.push(distanceLabel);
+    }
+  });
+} else {
+  // Remove Mexico to USA connections
+  mexicoToUSALines.forEach(line => map.removeLayer(line));
+  mexicoToUSADistanceLabels.forEach(label => map.removeLayer(label));
+  mexicoToUSALines = [];
+  mexicoToUSADistanceLabels = [];
+}
 }
 
 // Add a button to toggle Mexico to USA connections
 const toggleButton = L.control({ position: 'topright' });
 toggleButton.onAdd = function () {
-  const div = L.DomUtil.create('div', 'toggle-button');
-  div.innerHTML = '<button onclick="toggleConnectMexicoToUSA()">Toggle Mexico to USA Connections</button>';
-  return div;
+const div = L.DomUtil.create('div', 'toggle-button');
+div.innerHTML = '<button onclick="toggleConnectMexicoToUSA()">Toggle Mexico to USA Connections</button>';
+return div;
 };
 toggleButton.addTo(map);

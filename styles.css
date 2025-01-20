@@ -4,7 +4,7 @@
   
   .distance-label {
     background-color: white;
-    padding: 2px 27px; /* Increased padding for wider boxes */
+    padding: 2px 12px; /* Increased padding for wider boxes */
     border-radius: 3px;
     border: 1px solid black;
     font-size: 12px;
