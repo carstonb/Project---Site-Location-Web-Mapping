@@ -1,0 +1,14 @@
+.leaflet-control .toggle-button button,
+.leaflet-control .toggle-road-button button,
+.leaflet-control .toggle-hq-button button {
+  background-color: white;
+  border: 1px solid #ccc;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.leaflet-control .toggle-button button:hover,
+.leaflet-control .toggle-road-button button:hover,
+.leaflet-control .toggle-hq-button button:hover {
+  background-color: #f0f0f0;
+}

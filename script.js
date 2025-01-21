@@ -1,3 +1,7 @@
+// Omnisharp LLC 2025 Web Mapping Tool
+// Mapbox API key for routing
+// Created by Carston Buehler
+
 const map = L.map('map').setView([37.8, -96], 4.5);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -158,7 +162,7 @@ specificConnections.forEach(connection => {
 
   if (fromSite && toSite) {
     const distance = calculateDistance(fromSite.coords, toSite.coords);
-    const line = L.polyline([fromSite.coords, toSite.coords], { color: 'blue', weight: 2, opacity: 0 }).addTo(map);
+    const line = L.polyline([fromSite.coords, toSite.coords], { color: 'lightblue', weight: 2, opacity: 0 }).addTo(map);
     const midPoint = [
       (fromSite.coords[0] + toSite.coords[0]) / 2,
       (fromSite.coords[1] + toSite.coords[1]) / 2
@@ -238,23 +242,78 @@ function toggleConnectMexicoToUSA() {
   }
 }
 
+let includeHQ = false;
+
+function toggleIncludeHQ() {
+  includeHQ = !includeHQ;
+
+  const button = document.querySelector('.toggle-hq-button button');
+  button.style.backgroundColor = includeHQ ? 'green' : '';
+  button.innerHTML = includeHQ ? 'Exclude HQ from Distances' : 'Include HQ in Distances';
+
+  // Update the lines and labels based on the current state
+  if (showRoadDistances) {
+    roadDistanceLines.forEach(({ line }) => map.removeLayer(line));
+    roadDistanceLabels.forEach(label => map.removeLayer(label));
+    roadDistanceLines = [];
+    roadDistanceLabels = [];
+  } else {
+    usaLines.forEach(({ line, distanceLabel }) => {
+      line.setStyle({ opacity: 0 });
+      distanceLabel.setOpacity(0);
+    });
+    mexicoLines.forEach(({ line, distanceLabel }) => {
+      line.setStyle({ opacity: 0 });
+      distanceLabel.setOpacity(0);
+    });
+  }
+}
+
 // Add hover event listeners to markers
 sites.forEach(site => {
   const marker = L.marker(site.coords, { icon: site.type === 'plant' ? plantIcon : hqIcon }).addTo(map)
     .bindPopup(site.name);
 
   marker.on('mouseover', function() {
-    toggleLinesAndLabels(site, usaLines, true);
-    toggleLinesAndLabels(site, mexicoLines, true);
-    toggleLinesAndLabels(site, mexicoToUSALines, true); // Ensure Mexico to USA lines are shown
-    toggleLinesAndLabels(site, mexicoToUSADistanceLabels, true); // Ensure Mexico to USA distance labels are shown
+    if (showRoadDistances) {
+      showRoadDistancesForSite(site);
+    } else {
+      toggleLinesAndLabels(site, usaLines, true);
+      toggleLinesAndLabels(site, mexicoLines, true);
+      toggleLinesAndLabels(site, mexicoToUSALines, true); // Ensure Mexico to USA lines are shown
+      toggleLinesAndLabels(site, mexicoToUSADistanceLabels, true); // Ensure Mexico to USA distance labels are shown
+
+      if (includeHQ) {
+        const hqSite = sites.find(site => site.type === 'hq');
+        const distance = calculateDistance(site.coords, hqSite.coords);
+        const line = L.polyline([site.coords, hqSite.coords], { color: 'blue', weight: 2, opacity: 0.5 }).addTo(map);
+        const midPoint = [
+          (site.coords[0] + hqSite.coords[0]) / 2,
+          (site.coords[1] + hqSite.coords[1]) / 2
+        ];
+        const distanceLabel = L.marker(midPoint, {
+          icon: L.divIcon({
+            className: 'distance-label',
+            html: `${Math.round(distance)}`
+          })
+        }).addTo(map);
+        usaLines.push({ line, distanceLabel, site1: site, site2: hqSite });
+      }
+    }
   });
 
   marker.on('mouseout', function() {
-    toggleLinesAndLabels(site, usaLines, false);
-    toggleLinesAndLabels(site, mexicoLines, false);
-    toggleLinesAndLabels(site, mexicoToUSALines, false); // Ensure Mexico to USA lines are hidden
-    toggleLinesAndLabels(site, mexicoToUSADistanceLabels, false); // Ensure Mexico to USA distance labels are hidden
+    if (showRoadDistances) {
+      roadDistanceLines.forEach(({ line }) => map.removeLayer(line));
+      roadDistanceLabels.forEach(label => map.removeLayer(label));
+      roadDistanceLines = [];
+      roadDistanceLabels = [];
+    } else {
+      toggleLinesAndLabels(site, usaLines, false);
+      toggleLinesAndLabels(site, mexicoLines, false);
+      toggleLinesAndLabels(site, mexicoToUSALines, false); // Ensure Mexico to USA lines are hidden
+      toggleLinesAndLabels(site, mexicoToUSADistanceLabels, false); // Ensure Mexico to USA distance labels are hidden
+    }
   });
 });
 
@@ -266,3 +325,100 @@ toggleButton.onAdd = function () {
   return div;
 };
 toggleButton.addTo(map);
+
+// Add a button to toggle road distances
+const toggleRoadButton = L.control({ position: 'topright' });
+toggleRoadButton.onAdd = function () {
+  const div = L.DomUtil.create('div', 'toggle-road-button');
+  div.innerHTML = '<button onclick="toggleRoadDistances()">Show Road Distances</button>';
+  return div;
+};
+toggleRoadButton.addTo(map);
+
+// Add a button to toggle HQ inclusion
+const toggleHQButton = L.control({ position: 'topright' });
+toggleHQButton.onAdd = function () {
+  const div = L.DomUtil.create('div', 'toggle-hq-button');
+  div.innerHTML = '<button onclick="toggleIncludeHQ()">Include HQ in Distances</button>';
+  return div;
+};
+toggleHQButton.addTo(map);
+
+let showRoadDistances = false;
+let roadDistanceLines = [];
+let roadDistanceLabels = [];
+
+function toggleRoadDistances() {
+  showRoadDistances = !showRoadDistances;
+
+  const button = document.querySelector('.toggle-road-button button');
+  if (showRoadDistances) {
+    button.style.backgroundColor = 'green';
+    button.innerHTML = 'Show Straight Line Distances';
+
+    // Hide straight line distances
+    usaLines.forEach(({ line, distanceLabel }) => {
+      line.setStyle({ opacity: 0 });
+      distanceLabel.setOpacity(0);
+    });
+    mexicoLines.forEach(({ line, distanceLabel }) => {
+      line.setStyle({ opacity: 0 });
+      distanceLabel.setOpacity(0);
+    });
+  } else {
+    button.style.backgroundColor = '';
+    button.innerHTML = 'Show Road Distances';
+
+    // Hide road distances
+    roadDistanceLines.forEach(({ line }) => map.removeLayer(line));
+    roadDistanceLabels.forEach(label => map.removeLayer(label));
+    roadDistanceLines = [];
+    roadDistanceLabels = [];
+  }
+}
+
+function showRoadDistancesForSite(site) {
+  // Use Mapbox Directions API to calculate road distances
+  const routingServiceUrl = 'https://api.mapbox.com/directions/v5/mapbox/driving/';
+  const accessToken = 'pk.eyJ1IjoiY2J1ZWhsZXIwMSIsImEiOiJjbTY2bzQ1MW8wMjdlMmxwdzc3dDZlYnA4In0.a09bYff34MsNaLoJsJYb6A'; // Replace with your Mapbox access token
+
+  const connections = usaLines.filter(({ site1, site2 }) => site === site1 || site === site2);
+  connections.push(...mexicoLines.filter(({ site1, site2 }) => site === site1 || site === site2));
+  connections.push(...usaLines.filter(({ site1, site2 }) => (site === site1 || site === site2) && (site1.type === 'hq' || site2.type === 'hq')));
+
+  if (includeHQ) {
+    const hqSite = sites.find(site => site.type === 'hq');
+    connections.push({ site1: site, site2: hqSite });
+  }
+
+  connections.forEach(({ site1, site2 }) => {
+    const otherSite = site === site1 ? site2 : site1;
+    const url = `${routingServiceUrl}${site.coords[1]},${site.coords[0]};${otherSite.coords[1]},${otherSite.coords[0]}?geometries=geojson&access_token=${accessToken}`;
+
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        if (data.routes && data.routes.length > 0) {
+          const route = data.routes[0];
+          const distance = route.distance / 1609.34; // Convert meters to miles
+          const coordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+
+          const line = L.polyline(coordinates, { color: 'purple', weight: 2, opacity: 0.5 }).addTo(map);
+          roadDistanceLines.push({ line, site1: site, site2: otherSite });
+
+          const midPoint = [
+            (site.coords[0] + otherSite.coords[0]) / 2,
+            (site.coords[1] + otherSite.coords[1]) / 2
+          ];
+          const distanceLabel = L.marker(midPoint, {
+            icon: L.divIcon({
+              className: 'distance-label',
+              html: `${Math.round(distance)}`
+            })
+          }).addTo(map);
+          distanceLabel.setOpacity(1); // Make the label visible
+          roadDistanceLabels.push(distanceLabel);
+        }
+      });
+  });
+}
