@@ -68,7 +68,7 @@ const sites = [
   // International - Mexico
   { name: 'Keken ', coords: [20.9861173, -89.7936814], type: 'plant', region: 'Mexico', icon: 'pig' },
   { name: 'Proan', coords: [20.6740117, -103.4179727], type: 'plant', region: 'Mexico', icon: 'pig' },
-  { name: 'SuKarne', coords: [25.3220694, -104.908717], type: 'plant', region: 'Mexico', icon: 'pig' },
+  { name: 'SuKarne', coords: [25.3220694, -104.908717], type: 'plant', region: 'Mexico', icon: 'cow' },
 ];
 
 // Function to calculate distance between two coordinates in miles
