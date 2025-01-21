@@ -538,3 +538,18 @@ document.getElementById('locate-me').addEventListener('click', () => {
     alert('Geolocation is not supported by your browser');
   }
 });
+
+// Reset Map functionality
+document.getElementById('reset-map').addEventListener('click', () => {
+  map.setView([37.8, -96], 4.5);
+
+  if (routingControl) {
+    map.removeControl(routingControl);
+    routingControl = null;
+  }
+
+  if (userLocationMarker) {
+    map.removeLayer(userLocationMarker);
+    userLocationMarker = null;
+  }
+});
