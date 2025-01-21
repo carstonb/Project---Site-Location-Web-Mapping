@@ -7,6 +7,11 @@ body {
   height: 100vh;
 }
 
+/* Global font settings */
+body, button, .legend, .toggle-button, .toggle-road-button, .toggle-hq-button {
+  font-family: 'Arial', sans-serif; /* Professional font */
+}
+
 #map {
   flex: 1;
   height: 800px;
