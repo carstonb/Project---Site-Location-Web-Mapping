@@ -316,6 +316,26 @@ function toggleIncludeHQ() {
   }
 }
 
+// Initialize the routing control
+let routingControl;
+
+function getDirections(startCoords, endCoords) {
+  if (routingControl) {
+    map.removeControl(routingControl);
+  }
+
+  routingControl = L.Routing.control({
+    waypoints: [
+      L.latLng(startCoords[0], startCoords[1]),
+      L.latLng(endCoords[0], endCoords[1])
+    ],
+    routeWhileDragging: true,
+    formatter: new L.Routing.Formatter({
+      units: 'imperial' // Use 'imperial' for miles
+    })
+  }).addTo(map);
+}
+
 // Add hover event listeners to markers
 sites.forEach(site => {
   let icon;
@@ -377,6 +397,14 @@ sites.forEach(site => {
       toggleLinesAndLabels(site, mexicoLines, false);
       toggleLinesAndLabels(site, mexicoToUSALines, false); // Ensure Mexico to USA lines are hidden
       toggleLinesAndLabels(site, mexicoToUSADistanceLabels, false); // Ensure Mexico to USA distance labels are hidden
+    }
+  });
+
+  marker.on('click', function() {
+    if (userLocationMarker) {
+      getDirections([userLocationMarker.getLatLng().lat, userLocationMarker.getLatLng().lng], site.coords);
+    } else {
+      alert('If you would like routing directions to this site, please use the "Locate Me" button first to get your current location.');
     }
   });
 });
@@ -488,12 +516,19 @@ function showRoadDistancesForSite(site) {
 }
 
 // Locate Me functionality
+let userLocationMarker;
+
 document.getElementById('locate-me').addEventListener('click', () => {
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(position => {
       const userCoords = [position.coords.latitude, position.coords.longitude];
       map.setView(userCoords, 10);
-      L.marker(userCoords).addTo(map)
+
+      if (userLocationMarker) {
+        map.removeLayer(userLocationMarker);
+      }
+
+      userLocationMarker = L.marker(userCoords).addTo(map)
         .bindPopup('You are here')
         .openPopup();
     }, () => {
