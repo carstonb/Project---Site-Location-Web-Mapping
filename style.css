@@ -1,3 +1,20 @@
+#map {
+    height: 800px;
+  }
+  
+  .distance-label {
+    background-color: white;
+    padding: 2px 12px; /* Increased padding for wider boxes */
+    border-radius: 3px;
+    border: 1px solid black;
+    font-size: 12px;
+    white-space: nowrap; /* Ensure the text doesn't wrap */
+    text-align: center; /* Center the text */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
 .leaflet-control .toggle-button button,
 .leaflet-control .toggle-road-button button,
 .leaflet-control .toggle-hq-button button {
