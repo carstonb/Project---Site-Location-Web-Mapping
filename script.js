@@ -10,7 +10,15 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 // Define custom icons
 const plantIcon = L.icon({
-  iconUrl: 'Images/cow.png', // Ensure this path is correct
+  iconUrl: 'Images/cow.png', // Image for beef plants
+  iconSize: [25, 35], // Adjust these values to change the size
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+const turkeyIcon = L.icon({
+  iconUrl: 'Images/turkey.png', // Image for turkey plants
   iconSize: [25, 35], // Adjust these values to change the size
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
@@ -18,8 +26,16 @@ const plantIcon = L.icon({
 });
 
 const hqIcon = L.icon({
-  iconUrl: 'Images/HQ.png', // Ensure this path is correct
+  iconUrl: 'Images/HQ.png', // Image for HQ
   iconSize: [25, 25],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+const pigIcon = L.icon({
+  iconUrl: 'Images/pig.png', // Ensure this path is correct
+  iconSize: [25, 35], // Adjust these values to change the size
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
   shadowSize: [41, 41]
@@ -28,28 +44,28 @@ const hqIcon = L.icon({
 // https://www.latlong.net/convert-address-to-lat-long.html
 const sites = [
   // Plants - USA
-  { name: 'Amarillo', coords: [35.4127458, -101.654053], type: 'plant', region: 'USA' },
-  { name: 'Finney County', coords: [37.9983271, -101.0285989], type: 'plant', region: 'USA' },
-  { name: 'Joslin', coords: [41.555850, -90.225245], type: 'plant', region: 'USA' },
-  { name: 'Lexington', coords: [40.761108, -99.735229], type: 'plant', region: 'USA' },
-  { name: 'Dakota City', coords: [42.478832, -96.413133], type: 'plant', region: 'USA' },
-  { name: 'Smithfield', coords: [34.7545191, -78.8070153], type: 'plant', region: 'USA' },
-  { name: 'Storm Lake', coords: [42.6392091, -95.1846581], type: 'plant', region: 'USA' },
-  { name: 'Pasco', coords: [46.1375306, -118.9156132], type: 'plant', region: 'USA' },
-  { name: 'Green Bay', coords: [44.5282995, -88.0901618], type: 'plant', region: 'USA' },
-  { name: 'Plainwell', coords: [42.4211736, -85.6497604], type: 'plant', region: 'USA' },
-  { name: 'Souderton', coords: [40.2712296, -75.3361326], type: 'plant', region: 'USA' },
-  { name: 'Tolleson', coords: [33.4411955, -112.2553217], type: 'plant', region: 'USA' },
-  { name: 'Omaha', coords: [41.2093464, -95.9701349], type: 'plant', region: 'USA' },
+  { name: 'Amarillo', coords: [35.4127458, -101.654053], type: 'plant', region: 'USA', icon: 'cow' },
+  { name: 'Finney County', coords: [37.9983271, -101.0285989], type: 'plant', region: 'USA', icon: 'cow' },
+  { name: 'Joslin', coords: [41.555850, -90.225245], type: 'plant', region: 'USA', icon: 'cow' },
+  { name: 'Lexington', coords: [40.761108, -99.735229], type: 'plant', region: 'USA', icon: 'cow' },
+  { name: 'Dakota City', coords: [42.478832, -96.413133], type: 'plant', region: 'USA', icon: 'cow' },
+  { name: 'Smithfield', coords: [34.7545191, -78.8070153], type: 'plant', region: 'USA', icon: 'cow' },
+  { name: 'Storm Lake', coords: [42.6392091, -95.1846581], type: 'plant', region: 'USA', icon: 'turkey' },
+  { name: 'Pasco', coords: [46.1375306, -118.9156132], type: 'plant', region: 'USA', icon: 'cow' },
+  { name: 'Green Bay', coords: [44.5282995, -88.0901618], type: 'plant', region: 'USA', icon: 'cow' },
+  { name: 'Plainwell', coords: [42.4211736, -85.6497604], type: 'plant', region: 'USA', icon: 'cow' },
+  { name: 'Souderton', coords: [40.2712296, -75.3361326], type: 'plant', region: 'USA', icon: 'cow' },
+  { name: 'Tolleson', coords: [33.4411955, -112.2553217], type: 'plant', region: 'USA', icon: 'cow' },
+  { name: 'Omaha', coords: [41.2093464, -95.9701349], type: 'plant', region: 'USA', icon: 'cow' },
   // HQ and Remote Locations
-  { name: 'Omnisharp', coords: [30.4604802, -97.6551371], type: 'hq' },
+  { name: 'Omnisharp', coords: [30.4604802, -97.6551371], type: 'hq', icon: 'hq' },
   // Sharpening Centers
-  { name: 'Springdale', coords: [36.1907351, -94.4742007], type: 'SaaS' },
-  { name: 'CES', coords: [53.4722462, -2.3793467], type: 'SaaS' },
+  { name: 'Springdale', coords: [36.1907351, -94.4742007], type: 'SaaS', icon: 'hq' },
+  { name: 'CES', coords: [53.4722462, -2.3793467], type: 'SaaS', icon: 'hq' },
   // International - Mexico
-  { name: 'Keken ', coords: [20.9861173, -89.7936814], type: 'plant', region: 'Mexico' },
-  { name: 'Proan', coords: [20.6740117, -103.4179727], type: 'plant', region: 'Mexico' },
-  { name: 'SuKarne', coords: [25.3220694, -104.908717], type: 'plant', region: 'Mexico' },
+  { name: 'Keken ', coords: [20.9861173, -89.7936814], type: 'plant', region: 'Mexico', icon: 'pig' },
+  { name: 'Proan', coords: [20.6740117, -103.4179727], type: 'plant', region: 'Mexico', icon: 'pig' },
+  { name: 'SuKarne', coords: [25.3220694, -104.908717], type: 'plant', region: 'Mexico', icon: 'pig' },
 ];
 
 // Function to calculate distance between two coordinates in miles
@@ -70,7 +86,23 @@ function calculateDistance(coords1, coords2) {
 
 // Add markers and calculate distances
 sites.forEach(site => {
-  const icon = site.type === 'plant' ? plantIcon : hqIcon;
+  let icon;
+  switch (site.icon) {
+    case 'turkey':
+      icon = turkeyIcon;
+      break;
+    case 'cow':
+      icon = plantIcon;
+      break;
+    case 'pig':
+      icon = pigIcon;
+      break;
+    case 'hq':
+      icon = hqIcon;
+      break;
+    default:
+      icon = plantIcon; // Default to plant icon if none specified
+  }
   L.marker(site.coords, { icon: icon }).addTo(map)
     .bindPopup(site.name);
 });
