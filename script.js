@@ -515,10 +515,8 @@ function showRoadDistancesForSite(site) {
   });
 }
 
-// Locate Me functionality
-let userLocationMarker;
-
-document.getElementById('locate-me').addEventListener('click', () => {
+// Locate functionality
+document.getElementById('locate').addEventListener('click', () => {
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(position => {
       const userCoords = [position.coords.latitude, position.coords.longitude];
