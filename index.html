@@ -3,11 +3,24 @@
 <html>
 <head>
   <title>Plant Sites Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <header style="background-color: #004080; color: white; padding: 10px 0; text-align: center;">
+    <h1>Omnisharp LLC</h1>
+  </header>
   <div id="map"></div>
+  <div id="legend" class="legend" style="position: absolute; bottom: 10px; left: 10px; background: white; padding: 10px; border: 1px solid #ccc;">
+    <h3>Legend</h3>
+    <div><img src="Images/cow.png" alt="Beef Plant" /> Beef Plant: <span id="beef-count"></span></div>
+    <div><img src="Images/pig.png" alt="Pork Plant" /> Pork Plant: <span id="pork-count"></span></div>
+    <div><img src="Images/turkey.png" alt="Poultry Plant" /> Poultry Plant: <span id="poultry-count"></span></div>
+  </div>
+  <footer style="position: relative; bottom: 0; width: 100%; text-align: center;">
+    <p>&copy; 2025 Omnisharp, LLC</p>
+  </footer>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="script.js"></script>
 </body>

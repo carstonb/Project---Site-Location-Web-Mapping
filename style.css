@@ -1,20 +1,31 @@
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevent scroll bars on desktop */
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
 #map {
-    height: 800px;
-  }
-  
-  .distance-label {
-    background-color: white;
-    padding: 2px 12px; /* Increased padding for wider boxes */
-    border-radius: 3px;
-    border: 1px solid black;
-    font-size: 12px;
-    white-space: nowrap; /* Ensure the text doesn't wrap */
-    text-align: center; /* Center the text */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
+  flex: 1;
+  height: 800px;
+  margin-bottom: 50px; /* Add margin to ensure space for the footer */
+}
+
+.distance-label {
+  background-color: white;
+  padding: 2px 12px; /* Increased padding for wider boxes */
+  border-radius: 3px;
+  border: 1px solid black;
+  font-size: 12px;
+  white-space: nowrap; /* Ensure the text doesn't wrap */
+  text-align: center; /* Center the text */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .leaflet-control .toggle-button button,
 .leaflet-control .toggle-road-button button,
 .leaflet-control .toggle-hq-button button {
@@ -28,4 +39,60 @@
 .leaflet-control .toggle-road-button button:hover,
 .leaflet-control .toggle-hq-button button:hover {
   background-color: #f0f0f0;
+}
+
+/* New styles for header and footer */
+header {
+  text-align: center;
+  padding: 20px;
+  background-color: #8B0000; /* Dark red background */
+  color: white; /* White text color */
+  border-bottom: 2px solid #000; /* Black border */
+  font-family: 'Arial', sans-serif; /* Professional font */
+}
+
+header h1 {
+  margin: 0;
+  font-size: 2em;
+}
+
+footer {
+  text-align: center;
+  padding: 10px; /* Adjusted padding */
+  background-color: #f8f8f8;
+  border-top: 1px solid #ccc;
+  width: 100%;
+  color: #000; /* Black text color */
+  position: relative;
+  bottom: 0;
+}
+
+/* Styles for the legend */
+.legend {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background-color: white;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000; /* Ensure the legend is on top of all other layers */
+}
+
+.legend h3 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+}
+
+.legend div {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.legend img {
+  width: 20px;
+  height: 20px;
+  margin-right: 5px;
 }
