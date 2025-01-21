@@ -486,3 +486,20 @@ function showRoadDistancesForSite(site) {
       });
   });
 }
+
+// Locate Me functionality
+document.getElementById('locate-me').addEventListener('click', () => {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(position => {
+      const userCoords = [position.coords.latitude, position.coords.longitude];
+      map.setView(userCoords, 10);
+      L.marker(userCoords).addTo(map)
+        .bindPopup('You are here')
+        .openPopup();
+    }, () => {
+      alert('Unable to retrieve your location');
+    });
+  } else {
+    alert('Geolocation is not supported by your browser');
+  }
+});

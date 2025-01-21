@@ -49,6 +49,7 @@ header {
   color: white; /* White text color */
   border-bottom: 2px solid #000; /* Black border */
   font-family: 'Arial', sans-serif; /* Professional font */
+  position: relative;
 }
 
 header h1 {
@@ -70,7 +71,7 @@ footer {
 /* Styles for the legend */
 .legend {
   position: absolute;
-  bottom: 10px;
+  bottom: 50px; /* Move the legend up */
   left: 10px;
   background-color: white;
   padding: 10px;
@@ -95,4 +96,23 @@ footer {
   width: 20px;
   height: 20px;
   margin-right: 5px;
+}
+
+/* Styles for the Locate Me button */
+.locate-me {
+  position: absolute;
+  top: 50%;
+  left: 10px; /* Move the button to the left side */
+  transform: translateY(-50%); /* Center vertically */
+  background-color: #8B0000; /* Dark red background */
+  color: white;
+  border: none;
+  padding: 5px 10px; /* Adjusted padding */
+  border-radius: 5px;
+  cursor: pointer;
+  z-index: 1000; /* Ensure the button is on top of all other layers */
+}
+
+.locate-me:hover {
+  background-color: #A52A2A; /* Lighter red on hover */
 }
