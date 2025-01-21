@@ -336,6 +336,8 @@ function getDirections(startCoords, endCoords) {
   }).addTo(map);
 }
 
+let userLocationMarker; // Ensure this variable is defined
+
 // Add hover event listeners to markers
 sites.forEach(site => {
   let icon;
