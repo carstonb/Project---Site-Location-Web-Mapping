@@ -7,7 +7,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 // Define custom icons
 const plantIcon = L.icon({
   iconUrl: 'Images/cow.png', // Ensure this path is correct
-  iconSize: [25, 41], // Adjust these values to change the size
+  iconSize: [25, 35], // Adjust these values to change the size
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
   shadowSize: [41, 41]
@@ -15,7 +15,7 @@ const plantIcon = L.icon({
 
 const hqIcon = L.icon({
   iconUrl: 'Images/HQ.png', // Ensure this path is correct
-  iconSize: [25, 41],
+  iconSize: [25, 25],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
   shadowSize: [41, 41]
@@ -184,7 +184,6 @@ function toggleLinesAndLabels(site, lines, show) {
   });
 }
 
-// Toggle for connecting Mexico sites to the USA
 let connectMexicoToUSAToggle = false;
 let mexicoToUSALines = [];
 let mexicoToUSADistanceLabels = [];
@@ -211,7 +210,7 @@ function toggleConnectMexicoToUSA() {
       });
 
       if (closestUSASite) {
-        const line = L.polyline([mexicoPlant.coords, closestUSASite.coords], { color: 'green', weight: 2, opacity: 0 }).addTo(map); // Different color line
+        const line = L.polyline([mexicoPlant.coords, closestUSASite.coords], { color: 'green', weight: 2, opacity: 0.5 }).addTo(map); // Different color line
         mexicoToUSALines.push({ line, site1: mexicoPlant, site2: closestUSASite });
         const midPoint = [
           (mexicoPlant.coords[0] + closestUSASite.coords[0]) / 2,
@@ -223,7 +222,7 @@ function toggleConnectMexicoToUSA() {
             html: `${Math.round(closestDistance)}`
           })
         }).addTo(map);
-        distanceLabel.setOpacity(0); // Initially invisible
+        distanceLabel.setOpacity(1); // Make the label visible
         mexicoToUSADistanceLabels.push(distanceLabel);
       }
     });
