@@ -19,7 +19,7 @@ const plantIcon = L.icon({
 
 const turkeyIcon = L.icon({
   iconUrl: 'Images/turkey.png', // Image for turkey plants
-  iconSize: [25, 35], // Adjust these values to change the size
+  iconSize: [25, 29], // Adjust these values to change the size
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
   shadowSize: [41, 41]
@@ -35,7 +35,7 @@ const hqIcon = L.icon({
 
 const pigIcon = L.icon({
   iconUrl: 'Images/pig.png', // Ensure this path is correct
-  iconSize: [25, 35], // Adjust these values to change the size
+  iconSize: [25, 34], // Adjust these values to change the size
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
   shadowSize: [41, 41]
@@ -303,7 +303,24 @@ function toggleIncludeHQ() {
 
 // Add hover event listeners to markers
 sites.forEach(site => {
-  const marker = L.marker(site.coords, { icon: site.type === 'plant' ? plantIcon : hqIcon }).addTo(map)
+  let icon;
+  switch (site.icon) {
+    case 'turkey':
+      icon = turkeyIcon;
+      break;
+    case 'cow':
+      icon = plantIcon;
+      break;
+    case 'pig':
+      icon = pigIcon;
+      break;
+    case 'hq':
+      icon = hqIcon;
+      break;
+    default:
+      icon = plantIcon; // Default to plant icon if none specified
+  }
+  const marker = L.marker(site.coords, { icon: icon }).addTo(map)
     .bindPopup(site.name);
 
   marker.on('mouseover', function() {
