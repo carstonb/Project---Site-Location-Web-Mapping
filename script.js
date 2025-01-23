@@ -1,5 +1,6 @@
 // Omnisharp LLC 2025 Web Mapping Tool
 // Mapbox API key for routing
+// Aviationstack API key for airport data 62b03a79042579fe5f64a5e45684a9cc
 // Created by Carston Buehler
 
 const map = L.map('map').setView([37.8, -96], 4.5);
@@ -109,6 +110,25 @@ async function fetchWeather(coords) {
   }
 }
 
+async function fetchClosestAirports(coords) {
+  const apiKey = '62b03a79042579fe5f64a5e45684a9cc'; // Replace with your AviationStack API key
+  const url = `http://api.aviationstack.com/v1/airports?access_key=${apiKey}&lat=${coords[0]}&lon=${coords[1]}&limit=100`;
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    const airports = data.data.map(airport => ({
+      name: airport.airport_name,
+      code: airport.iata_code,
+      distance: calculateDistance(coords, [airport.latitude, airport.longitude])
+    }));
+    return airports.sort((a, b) => a.distance - b.distance).slice(0, 3);
+  } catch (error) {
+    console.error('Error fetching airport data:', error);
+    return [];
+  }
+}
+
 function getWeatherBoxColor(temp) {
   if (temp <= 32) {
     return '#ADD8E6'; // Light Blue
@@ -134,6 +154,44 @@ function createWeatherBox(weather) {
   });
 }
 
+function createAirportBox(airports, site) {
+  return L.divIcon({
+    className: 'airport-box',
+    html: `<div style="background: white; border: 1px solid black; padding: 5px; height: 200px; overflow-y: auto;">
+             <button onclick="closeAirportBox('${site.name}')">Close</button>
+             Closest Airports:<br>
+             ${airports.length > 0 ? airports.map(airport => `<input type="checkbox" class="airport-checkbox" data-site="${site.name}" data-code="${airport.code}">${formatAirportName(airport.name)} (${airport.code}) - ${Math.round(airport.distance)} miles`).join('<br>') : 'No airports found'}
+           </div>`,
+    iconSize: [200, 200],
+    iconAnchor: [100, 0]
+  });
+}
+
+function closeAirportBox(siteName) {
+  const markersToRemove = travelMarkers.filter(marker => marker.options.icon.options.html.includes(`data-site="${siteName}"`));
+  markersToRemove.forEach(marker => map.removeLayer(marker));
+  travelMarkers = travelMarkers.filter(marker => !markersToRemove.includes(marker));
+}
+
+function executeTicketSearch() {
+  const selectedAirports = Array.from(document.querySelectorAll('.airport-checkbox:checked')).map(checkbox => checkbox.dataset.code);
+  if (selectedAirports.length < 2) {
+    alert('Please select at least one airport from each site.');
+    return;
+  }
+
+  const fromAirports = selectedAirports.filter(code => document.querySelector(`.airport-checkbox[data-code="${code}"]`).dataset.site === fromSite.name);
+  const toAirports = selectedAirports.filter(code => document.querySelector(`.airport-checkbox[data-code="${code}"]`).dataset.site === toSite.name);
+
+  if (fromAirports.length === 0 || toAirports.length === 0) {
+    alert('Please select at least one airport from each site.');
+    return;
+  }
+
+  // Fetch and display ticket prices (mock implementation)
+  alert(`Searching for tickets from ${fromAirports.join(', ')} to ${toAirports.join(', ')}`);
+}
+
 // Add markers and calculate distances
 let beefCount = 0;
 let porkCount = 0;
@@ -146,6 +204,20 @@ const airports = [
   { name: 'Garden City Regional', code: 'GCK', coords: [37.9275, -100.7239] },
   { name: 'Austin-Bergstrom Intl', code: 'AUS', coords: [30.1944, -97.67] },
   { name: 'Georgetown Municipal', code: 'GTU', coords: [30.6788, -97.6794] },
+  { name: 'Phoenix Sky Harbor Intl', code: 'PHX', coords: [33.4342, -112.0116] },
+  { name: 'Phoenix-Mesa Gateway', code: 'AZA', coords: [33.3078, -111.6555] },
+  { name: 'Tucson Intl', code: 'TUS', coords: [32.1161, -110.9410] },
+  { name: 'Denver Intl', code: 'DEN', coords: [39.8561, -104.6737] },
+  { name: 'Dallas/Fort Worth Intl', code: 'DFW', coords: [32.8998, -97.0403] },
+  { name: 'San Francisco Intl', code: 'SFO', coords: [37.6213, -122.3790] },
+  { name: 'Seattle-Tacoma Intl', code: 'SEA', coords: [47.4502, -122.3088] },
+  { name: 'Miami Intl', code: 'MIA', coords: [25.7959, -80.2870] },
+  { name: 'Orlando Intl', code: 'MCO', coords: [28.4312, -81.3081] },
+  { name: 'Las Vegas McCarran Intl', code: 'LAS', coords: [36.0840, -115.1537] },
+  { name: 'Charlotte Douglas Intl', code: 'CLT', coords: [35.2140, -80.9431] },
+  { name: 'Salt Lake City Intl', code: 'SLC', coords: [40.7899, -111.9791] },
+  { name: 'Portland Intl', code: 'PDX', coords: [45.5898, -122.5951] },
+  { name: 'San Diego Intl', code: 'SAN', coords: [32.7338, -117.1933] },
   // Add more airports as needed
 ];
 
@@ -176,20 +248,32 @@ function toggleTravel() {
   button.innerHTML = showTravel ? 'Hide Travel Information' : 'Show Travel Information';
 
   if (showTravel) {
-    sites.forEach(site => {
-      const closestAirports = findClosestAirports(site.coords);
-      const travelBox = L.divIcon({
-        className: 'travel-info',
-        html: `<div>Closest Airports:<br>${closestAirports.map(airport => `${formatAirportName(airport.name)} (${airport.code}) - ${Math.round(airport.distance)} miles`).join('<br>')}</div>`,
-        iconSize: [200, 100],
-        iconAnchor: [100, 0]
-      });
-      const travelMarker = L.marker([site.coords[0] - 0.02, site.coords[1]], { icon: travelBox }).addTo(map);
-      travelMarkers.push(travelMarker);
+    sites.forEach(async site => {
+      const closestAirports = await fetchClosestAirports(site.coords);
+      const airportBox = createAirportBox(closestAirports, site);
+      const airportMarker = L.marker([site.coords[0] - 0.02, site.coords[1]], { icon: airportBox }).addTo(map);
+      travelMarkers.push(airportMarker);
     });
+
+    // Add execute button
+    const executeButton = L.control({ position: 'topright' });
+    executeButton.onAdd = function () {
+      const div = L.DomUtil.create('div', 'execute-button');
+      div.innerHTML = '<button onclick="executeTicketSearch()">Execute Ticket Search</button>';
+      return div;
+    };
+    executeButton.addTo(map);
   } else {
     travelMarkers.forEach(marker => map.removeLayer(marker));
     travelMarkers = [];
+    fromSite = null;
+    toSite = null;
+
+    // Remove execute button
+    const executeButton = document.querySelector('.execute-button');
+    if (executeButton) {
+      executeButton.remove();
+    }
   }
 }
 
@@ -232,6 +316,11 @@ sites.forEach(site => {
 
   marker.on('click', async function() {
     if (showTravel) {
+      const closestAirports = await fetchClosestAirports(site.coords);
+      const airportBox = createAirportBox(closestAirports, site);
+      const airportMarker = L.marker([site.coords[0] - 0.02, site.coords[1]], { icon: airportBox }).addTo(map);
+      travelMarkers.push(airportMarker);
+
       if (!fromSite) {
         fromSite = site;
         marker.bindPopup(`${site.name}<br>From Site Selected`).openPopup();
@@ -239,8 +328,8 @@ sites.forEach(site => {
         toSite = site;
         marker.bindPopup(`${site.name}<br>To Site Selected`).openPopup();
 
-        const fromAirports = findClosestAirports(fromSite.coords);
-        const toAirports = findClosestAirports(toSite.coords);
+        const fromAirports = await fetchClosestAirports(fromSite.coords);
+        const toAirports = await fetchClosestAirports(toSite.coords);
 
         const flightInfo = await fetchFlightInfo(fromAirports[0], toAirports[0]);
 
@@ -254,7 +343,7 @@ sites.forEach(site => {
         L.marker([(fromSite.coords[0] + toSite.coords[0]) / 2, (fromSite.coords[1] + toSite.coords[1]) / 2], { icon: travelInfo }).addTo(map);
       }
     } else {
-      marker.bindPopup(`${site.name}<br>Closest Airports:<br>${closestAirports.map(airport => `${formatAirportName(airport.name)} (${airport.code}) - ${Math.round(airport.distance)} miles`).join('<br>')}`).openPopup();
+      marker.bindPopup(`${site.name}`).openPopup();
     }
   });
 });
@@ -544,11 +633,36 @@ sites.forEach(site => {
     }
   });
 
-  marker.on('click', function() {
-    if (userLocationMarker) {
-      getDirections([userLocationMarker.getLatLng().lat, userLocationMarker.getLatLng().lng], site.coords);
+  marker.on('click', async function() {
+    if (showTravel) {
+      const closestAirports = await fetchClosestAirports(site.coords);
+      const airportBox = createAirportBox(closestAirports, site);
+      const airportMarker = L.marker([site.coords[0] - 0.02, site.coords[1]], { icon: airportBox }).addTo(map);
+      travelMarkers.push(airportMarker);
+
+      if (!fromSite) {
+        fromSite = site;
+        marker.bindPopup(`${site.name}<br>From Site Selected`).openPopup();
+      } else if (!toSite) {
+        toSite = site;
+        marker.bindPopup(`${site.name}<br>To Site Selected`).openPopup();
+
+        const fromAirports = await fetchClosestAirports(fromSite.coords);
+        const toAirports = await fetchClosestAirports(toSite.coords);
+
+        const flightInfo = await fetchFlightInfo(fromAirports[0], toAirports[0]);
+
+        const travelInfo = L.divIcon({
+          className: 'travel-info',
+          html: `<div>Flights from ${fromAirports[0].name} to ${toAirports[0].name}:<br>${flightInfo.flights.map(flight => `${flight.airline}: ${flight.price}, ${flight.duration}`).join('<br>')}</div>`,
+          iconSize: [200, 100],
+          iconAnchor: [100, 0]
+        });
+
+        L.marker([(fromSite.coords[0] + toSite.coords[0]) / 2, (fromSite.coords[1] + toSite.coords[1]) / 2], { icon: travelInfo }).addTo(map);
+      }
     } else {
-      alert('If you would like routing directions to this site, please use the "Locate Me" button first to get your current location.');
+      marker.bindPopup(`${site.name}`).openPopup();
     }
   });
 });
@@ -588,6 +702,15 @@ toggleTravelButton.onAdd = function () {
   return div;
 };
 toggleTravelButton.addTo(map);
+
+// Add a button to toggle weather information
+const toggleWeatherButton = L.control({ position: 'topright' });
+toggleWeatherButton.onAdd = function () {
+  const div = L.DomUtil.create('div', 'toggle-weather-button');
+  div.innerHTML = '<button onclick="toggleWeather()">Show Weather Information</button>';
+  return div;
+};
+toggleWeatherButton.addTo(map);
 
 let showRoadDistances = false;
 let roadDistanceLines = [];
@@ -658,7 +781,7 @@ function showRoadDistancesForSite(site) {
           const distanceLabel = L.marker(midPoint, {
             icon: L.divIcon({
               className: 'distance-label',
-              html: `${Math.round(distance)}`
+              html: `${Math.round(distance)} miles`
             })
           }).addTo(map);
           distanceLabel.setOpacity(1); // Make the label visible
@@ -727,12 +850,3 @@ function toggleWeather() {
     weatherMarkers = [];
   }
 }
-
-// Add a button to toggle weather information
-const toggleWeatherButton = L.control({ position: 'topright' });
-toggleWeatherButton.onAdd = function () {
-  const div = L.DomUtil.create('div', 'toggle-weather-button');
-  div.innerHTML = '<button onclick="toggleWeather()">Show Weather Information</button>';
-  return div;
-};
-toggleWeatherButton.addTo(map);
