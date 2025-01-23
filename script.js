@@ -576,6 +576,7 @@ function toggleIncludeHQ() {
 
 // Initialize the routing control
 let routingControl;
+let shareButton; // Define shareButton variable
 
 function getGoogleMapsLink(startCoords, endCoords) {
   return `https://www.google.com/maps/dir/?api=1&origin=${startCoords[0]},${startCoords[1]}&destination=${endCoords[0]},${endCoords[1]}&travelmode=driving`;
@@ -598,7 +599,7 @@ function getDirections(startCoords, endCoords) {
   }).addTo(map);
 
   const googleMapsLink = getGoogleMapsLink(startCoords, endCoords);
-  const shareButton = L.control({ position: 'topright' });
+  shareButton = L.control({ position: 'bottomright' });
   shareButton.onAdd = function () {
     const div = L.DomUtil.create('div', 'share-button');
     div.innerHTML = `<button onclick="window.open('${googleMapsLink}', '_blank')">Open in Google Maps</button>`;
@@ -629,6 +630,26 @@ document.getElementById('locate').addEventListener('click', () => {
     });
   } else {
     alert('Geolocation is not supported by your browser');
+  }
+});
+
+// Reset Map functionality
+document.getElementById('reset-map').addEventListener('click', () => {
+  map.setView([37.8, -96], 4.5);
+
+  if (routingControl) {
+    map.removeControl(routingControl);
+    routingControl = null;
+  }
+
+  if (userLocationMarker) {
+    map.removeLayer(userLocationMarker);
+    userLocationMarker = null;
+  }
+
+  if (shareButton) {
+    map.removeControl(shareButton);
+    shareButton = null;
   }
 });
 
@@ -737,6 +758,13 @@ sites.forEach(site => {
       getDirections(userCoords, site.coords);
     }
   });
+});
+
+// Add click event listener to the map for getting directions to any location
+map.on('click', function(e) {
+  if (userCoords) {
+    getDirections(userCoords, [e.latlng.lat, e.latlng.lng]);
+  }
 });
 
 // Add a button to toggle Mexico to USA connections
@@ -897,6 +925,11 @@ document.getElementById('reset-map').addEventListener('click', () => {
   if (userLocationMarker) {
     map.removeLayer(userLocationMarker);
     userLocationMarker = null;
+  }
+
+  if (shareButton) {
+    map.removeControl(shareButton);
+    shareButton = null;
   }
 });
 
