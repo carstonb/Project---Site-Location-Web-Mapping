@@ -2,6 +2,7 @@
 // Mapbox API key for routing
 // Aviationstack API key for airport data 62b03a79042579fe5f64a5e45684a9cc
 // Weather API: openweather.com 08f999cb201437c57f5a0116102eebee
+// https://github.com/hokiespurs/airportmap/blob/master/airports.geojson
 // Created by Carston Buehler
 
 const map = L.map('map').setView([37.8, -96], 4.5);
@@ -120,6 +121,14 @@ async function fetchWeather(coords) {
     const data = await response.json();
     console.log('Weather data:', data); // Debug log
 
+    if (data.cod !== "200") {
+      console.error('Error fetching weather data:', data.message);
+      return {
+        low: 'N/A',
+        high: 'N/A'
+      };
+    }
+
     const today = new Date().toISOString().split('T')[0];
     const todayForecasts = data.list.filter(forecast => forecast.dt_txt.startsWith(today));
 
@@ -127,8 +136,8 @@ async function fetchWeather(coords) {
     const high = Math.max(...todayForecasts.map(forecast => forecast.main.temp_max));
 
     const weather = {
-      low: sanitizeTemperature(low),
-      high: sanitizeTemperature(high)
+      low: isFinite(low) ? sanitizeTemperature(low) : 'N/A',
+      high: isFinite(high) ? sanitizeTemperature(high) : 'N/A'
     };
 
     console.log('Sanitized weather data:', weather); // Debug log
@@ -149,9 +158,7 @@ function sanitizeTemperature(temp) {
     console.error('Invalid temperature value:', temp);
     return 'N/A';
   }
-  const sanitized = temp.toFixed(0).replace(/[^\d.-]/g, ''); // Convert to fixed-point notation and remove any non-numeric characters except for digits, dot, and minus
-  console.log('Sanitized temperature:', sanitized); // Debug log
-  return sanitized;
+  return Math.round(temp).toString(); // Round to the nearest integer and convert to string
 }
 
 function getWeatherBoxColor(temp) {
@@ -172,11 +179,11 @@ function getWeatherBoxColor(temp) {
 
 function createWeatherBox(weather) {
   console.log('Creating weather box with data:', weather); // Debug log
-  const lowColor = getWeatherBoxColor(weather.low);
-  const highColor = getWeatherBoxColor(weather.high);
+  const lowColor = getWeatherBoxColor(weather.low !== 'N/A' ? parseInt(weather.low) : 0);
+  const highColor = getWeatherBoxColor(weather.high !== 'N/A' ? parseInt(weather.high) : 0);
   return L.divIcon({
     className: 'weather-box',
-    html: `<div style="background-color: ${lowColor}; color: black;">Low: ${weather.low}°F</div><div style="background-color: ${highColor}; color: black;">High: ${weather.high}°F</div>`,
+    html: `<div style="background-color: ${lowColor}; color: black;">Low: ${weather.low !== 'N/A' ? weather.low + '°F' : 'N/A'}</div><div style="background-color: ${highColor}; color: black;">High: ${weather.high !== 'N/A' ? weather.high + '°F' : 'N/A'}</div>`,
     iconSize: [80, 40],
     iconAnchor: [40, 0]
   });
@@ -185,26 +192,53 @@ function createWeatherBox(weather) {
 const aviationstackApiKey = '62b03a79042579fe5f64a5e45684a9cc';
 
 async function fetchClosestAirports(coords) {
-  const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];node(around:160934,${coords[0]},${coords[1]})[aeroway=airport];out;`;
+  // Ensure local airports data is loaded
+  if (!window.localAirports) {
+    await loadLocalAirports();
+  }
 
+  // Calculate distances and filter airports within 50 miles
+  const airports = window.localAirports.map(airport => {
+    const distance = calculateDistance(coords, [airport.geometry.coordinates[1], airport.geometry.coordinates[0]]);
+    return {
+      name: airport.properties.name,
+      code: airport.properties.iata || 'N/A',
+      distance: distance,
+      latitude: airport.geometry.coordinates[1],
+      longitude: airport.geometry.coordinates[0]
+    };
+  }).filter(airport => airport.distance <= 50);
+
+  console.log('Filtered airports:', airports); // Debug log
+  return airports.sort((a, b) => a.distance - b.distance).slice(0, 3);
+}
+
+// Load local airports from a GeoJSON file
+async function loadLocalAirports() {
   try {
-    const response = await fetch(overpassUrl);
+    const response = await fetch('https://raw.githubusercontent.com/hokiespurs/airportmap/master/airports.geojson'); // Fetch GeoJSON from GitHub
     const data = await response.json();
-    console.log('Overpass API response:', data); // Debug log
-    const airports = data.elements.map(airport => ({
-      name: airport.tags.name,
-      code: airport.tags.iata || 'N/A',
-      distance: calculateDistance(coords, [airport.lat, airport.lon]),
-      latitude: airport.lat,
-      longitude: airport.lon
-    }));
-    console.log('Filtered airports:', airports); // Debug log
-    return airports.sort((a, b) => a.distance - b.distance).slice(0, 3);
+    console.log('Local airports GeoJSON data:', data); // Debug log
+
+    const airportLayer = L.geoJSON(data, {
+      pointToLayer: function (feature, latlng) {
+        // This function will be used to create markers for airports
+        return L.marker(latlng, { icon: airportIcon }).bindPopup(`${feature.properties.name} (${feature.properties.iata})`);
+      }
+    });
+
+    // Add the airport layer to the map
+    map.addLayer(airportLayer);
+
+    // Store the airport data for later use
+    window.localAirports = data.features;
   } catch (error) {
-    console.error('Error fetching airport data:', error);
-    return [];
+    console.error('Error loading local airports:', error);
   }
 }
+
+// Call the function to load local airports
+loadLocalAirports();
 
 function getWeatherBoxColor(temp) {
   if (temp <= 32) {
@@ -329,9 +363,12 @@ function toggleTravel() {
   button.style.backgroundColor = showTravel ? 'green' : '';
   button.innerHTML = showTravel ? 'Hide Travel Information' : 'Show Travel Information';
 
+  console.log('Toggle Travel Information:', showTravel); // Debug log
+
   if (showTravel) {
     sites.forEach(async site => {
       const closestAirports = await fetchClosestAirports(site.coords);
+      console.log(`Closest airports for ${site.name}:`, closestAirports); // Debug log
       const airportBox = createAirportBox(closestAirports, site);
       const airportMarker = L.marker([site.coords[0] - 0.02, site.coords[1]], { icon: airportBox }).addTo(map);
       travelMarkers.push(airportMarker);
@@ -1022,3 +1059,17 @@ function toggleWeather() {
     weatherMarkers = [];
   }
 }
+
+// Function to generate a shareable link for the current map view
+function generateShareableLink() {
+  const center = map.getCenter();
+  const zoom = map.getZoom();
+  const shareableLink = `${window.location.origin}${window.location.pathname}?lat=${center.lat}&lng=${center.lng}&zoom=${zoom}`;
+  return shareableLink;
+}
+
+// Event listener for the Share button
+document.getElementById('share').addEventListener('click', () => {
+  const shareableLink = generateShareableLink();
+  prompt('Copy this link to share the current map view:', shareableLink);
+});

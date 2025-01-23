@@ -46,6 +46,17 @@ body, button, .legend, .toggle-button, .toggle-road-button, .toggle-hq-button {
   background-color: #f0f0f0;
 }
 
+.leaflet-control .toggle-travel-button button {
+  background-color: white;
+  border: 1px solid #ccc;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.leaflet-control .toggle-travel-button button:hover {
+  background-color: #f0f0f0;
+}
+
 /* New styles for header and footer */
 header {
   text-align: center;
