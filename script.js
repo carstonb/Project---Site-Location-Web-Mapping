@@ -1,6 +1,7 @@
 // Omnisharp LLC 2025 Web Mapping Tool
 // Mapbox API key for routing
 // Aviationstack API key for airport data 62b03a79042579fe5f64a5e45684a9cc
+// Weather API: openweather.com 08f999cb201437c57f5a0116102eebee
 // Created by Carston Buehler
 
 const map = L.map('map').setView([37.8, -96], 4.5);
@@ -40,6 +41,14 @@ const pigIcon = L.icon({
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
   shadowSize: [41, 41]
+});
+
+const airportIcon = L.icon({
+  iconUrl: 'Images/airplane.png', // Ensure this path is correct
+  iconSize: [25, 25], // Adjust these values to change the size
+  iconAnchor: [12, 12],
+  popupAnchor: [1, -12],
+  shadowSize: [25, 25]
 });
 
 // https://www.latlong.net/convert-address-to-lat-long.html
@@ -111,16 +120,17 @@ async function fetchWeather(coords) {
 }
 
 async function fetchClosestAirports(coords) {
-  const apiKey = '62b03a79042579fe5f64a5e45684a9cc'; // Replace with your AviationStack API key
-  const url = `http://api.aviationstack.com/v1/airports?access_key=${apiKey}&lat=${coords[0]}&lon=${coords[1]}&limit=100`;
+  const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];node(around:15000,${coords[0]},${coords[1]})[aeroway=airport];out;`;
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(overpassUrl);
     const data = await response.json();
-    const airports = data.data.map(airport => ({
-      name: airport.airport_name,
-      code: airport.iata_code,
-      distance: calculateDistance(coords, [airport.latitude, airport.longitude])
+    const airports = data.elements.map(airport => ({
+      name: airport.tags.name,
+      code: airport.tags.iata || 'N/A',
+      distance: calculateDistance(coords, [airport.lat, airport.lon]),
+      latitude: airport.lat,
+      longitude: airport.lon
     }));
     return airports.sort((a, b) => a.distance - b.distance).slice(0, 3);
   } catch (error) {
@@ -171,6 +181,10 @@ function closeAirportBox(siteName) {
   const markersToRemove = travelMarkers.filter(marker => marker.options.icon.options.html.includes(`data-site="${siteName}"`));
   markersToRemove.forEach(marker => map.removeLayer(marker));
   travelMarkers = travelMarkers.filter(marker => !markersToRemove.includes(marker));
+
+  const airportMarkersToRemove = airportMarkers.filter(marker => marker.options.siteName === siteName);
+  airportMarkersToRemove.forEach(marker => map.removeLayer(marker));
+  airportMarkers = airportMarkers.filter(marker => !airportMarkersToRemove.includes(marker));
 }
 
 function executeTicketSearch() {
@@ -225,6 +239,7 @@ let showTravel = false;
 let travelMarkers = [];
 let fromSite = null;
 let toSite = null;
+let airportMarkers = [];
 
 function findClosestAirports(coords) {
   return airports.map(airport => ({
@@ -253,6 +268,11 @@ function toggleTravel() {
       const airportBox = createAirportBox(closestAirports, site);
       const airportMarker = L.marker([site.coords[0] - 0.02, site.coords[1]], { icon: airportBox }).addTo(map);
       travelMarkers.push(airportMarker);
+
+      closestAirports.forEach(airport => {
+        const marker = L.marker([airport.latitude, airport.longitude], { icon: airportIcon, siteName: site.name }).addTo(map);
+        airportMarkers.push(marker);
+      });
     });
 
     // Add execute button
@@ -266,6 +286,8 @@ function toggleTravel() {
   } else {
     travelMarkers.forEach(marker => map.removeLayer(marker));
     travelMarkers = [];
+    airportMarkers.forEach(marker => map.removeLayer(marker));
+    airportMarkers = [];
     fromSite = null;
     toSite = null;
 
@@ -320,6 +342,11 @@ sites.forEach(site => {
       const airportBox = createAirportBox(closestAirports, site);
       const airportMarker = L.marker([site.coords[0] - 0.02, site.coords[1]], { icon: airportBox }).addTo(map);
       travelMarkers.push(airportMarker);
+
+      closestAirports.forEach(airport => {
+        const marker = L.marker([airport.latitude, airport.longitude], { icon: airportIcon, siteName: site.name }).addTo(map);
+        airportMarkers.push(marker);
+      });
 
       if (!fromSite) {
         fromSite = site;
@@ -550,6 +577,10 @@ function toggleIncludeHQ() {
 // Initialize the routing control
 let routingControl;
 
+function getGoogleMapsLink(startCoords, endCoords) {
+  return `https://www.google.com/maps/dir/?api=1&origin=${startCoords[0]},${startCoords[1]}&destination=${endCoords[0]},${endCoords[1]}&travelmode=driving`;
+}
+
 function getDirections(startCoords, endCoords) {
   if (routingControl) {
     map.removeControl(routingControl);
@@ -565,9 +596,41 @@ function getDirections(startCoords, endCoords) {
       units: 'imperial' // Use 'imperial' for miles
     })
   }).addTo(map);
+
+  const googleMapsLink = getGoogleMapsLink(startCoords, endCoords);
+  const shareButton = L.control({ position: 'topright' });
+  shareButton.onAdd = function () {
+    const div = L.DomUtil.create('div', 'share-button');
+    div.innerHTML = `<button onclick="window.open('${googleMapsLink}', '_blank')">Open in Google Maps</button>`;
+    return div;
+  };
+  shareButton.addTo(map);
 }
 
 let userLocationMarker; // Ensure this variable is defined
+let userCoords; // Store user coordinates
+
+// Locate functionality
+document.getElementById('locate').addEventListener('click', () => {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(position => {
+      userCoords = [position.coords.latitude, position.coords.longitude];
+      map.setView(userCoords, 10);
+
+      if (userLocationMarker) {
+        map.removeLayer(userLocationMarker);
+      }
+
+      userLocationMarker = L.marker(userCoords).addTo(map)
+        .bindPopup('You are here')
+        .openPopup();
+    }, () => {
+      alert('Unable to retrieve your location');
+    });
+  } else {
+    alert('Geolocation is not supported by your browser');
+  }
+});
 
 // Add hover event listeners to markers
 sites.forEach(site => {
@@ -640,6 +703,11 @@ sites.forEach(site => {
       const airportMarker = L.marker([site.coords[0] - 0.02, site.coords[1]], { icon: airportBox }).addTo(map);
       travelMarkers.push(airportMarker);
 
+      closestAirports.forEach(airport => {
+        const marker = L.marker([airport.latitude, airport.longitude], { icon: airportIcon, siteName: site.name }).addTo(map);
+        airportMarkers.push(marker);
+      });
+
       if (!fromSite) {
         fromSite = site;
         marker.bindPopup(`${site.name}<br>From Site Selected`).openPopup();
@@ -663,6 +731,10 @@ sites.forEach(site => {
       }
     } else {
       marker.bindPopup(`${site.name}`).openPopup();
+    }
+
+    if (userCoords) {
+      getDirections(userCoords, site.coords);
     }
   });
 });
