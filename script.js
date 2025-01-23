@@ -99,17 +99,42 @@ function calculateDistance(coords1, coords2) {
 
 // Function to fetch weather data
 //openweather.com
+let cachedWeatherData = {};
+let weatherCacheExpiry = new Date();
+weatherCacheExpiry.setHours(23, 59, 59, 999); // Set expiry to 11:59 PM today
+
 async function fetchWeather(coords) {
+  const cacheKey = `${coords[0]},${coords[1]}`;
+  const now = new Date();
+
+  if (cachedWeatherData[cacheKey] && now < weatherCacheExpiry) {
+    console.log('Using cached weather data:', cachedWeatherData[cacheKey]);
+    return cachedWeatherData[cacheKey];
+  }
+
   const apiKey = '08f999cb201437c57f5a0116102eebee'; // Replace with your weather API key
-  const url = `https://api.openweathermap.org/data/2.5/weather?lat=${coords[0]}&lon=${coords[1]}&units=imperial&appid=${apiKey}`;
+  const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${coords[0]}&lon=${coords[1]}&units=imperial&appid=${apiKey}`;
+
   try {
     const response = await fetch(url);
     const data = await response.json();
     console.log('Weather data:', data); // Debug log
-    return {
-      low: Math.round(data.main.temp_min),
-      high: Math.round(data.main.temp_max)
+
+    const today = new Date().toISOString().split('T')[0];
+    const todayForecasts = data.list.filter(forecast => forecast.dt_txt.startsWith(today));
+
+    const low = Math.min(...todayForecasts.map(forecast => forecast.main.temp_min));
+    const high = Math.max(...todayForecasts.map(forecast => forecast.main.temp_max));
+
+    const weather = {
+      low: sanitizeTemperature(low),
+      high: sanitizeTemperature(high)
     };
+
+    console.log('Sanitized weather data:', weather); // Debug log
+
+    cachedWeatherData[cacheKey] = weather;
+    return weather;
   } catch (error) {
     console.error('Error fetching weather data:', error);
     return {
@@ -119,12 +144,53 @@ async function fetchWeather(coords) {
   }
 }
 
+function sanitizeTemperature(temp) {
+  if (isNaN(temp)) {
+    console.error('Invalid temperature value:', temp);
+    return 'N/A';
+  }
+  const sanitized = temp.toFixed(0).replace(/[^\d.-]/g, ''); // Convert to fixed-point notation and remove any non-numeric characters except for digits, dot, and minus
+  console.log('Sanitized temperature:', sanitized); // Debug log
+  return sanitized;
+}
+
+function getWeatherBoxColor(temp) {
+  if (temp < 32) {
+    return '#0000FF'; // Dark Blue
+  } else if (temp <= 40) {
+    return '#4169E1'; // Medium Blue
+  } else if (temp <= 49) {
+    return '#87CEEB'; // Light Blue
+  } else if (temp <= 69) {
+    return '#FFFFE0'; // Light Yellow
+  } else if (temp <= 89) {
+    return '#FFD700'; // Medium Yellow
+  } else {
+    return '#FFA500'; // Dark Yellow
+  }
+}
+
+function createWeatherBox(weather) {
+  console.log('Creating weather box with data:', weather); // Debug log
+  const lowColor = getWeatherBoxColor(weather.low);
+  const highColor = getWeatherBoxColor(weather.high);
+  return L.divIcon({
+    className: 'weather-box',
+    html: `<div style="background-color: ${lowColor}; color: black;">Low: ${weather.low}°F</div><div style="background-color: ${highColor}; color: black;">High: ${weather.high}°F</div>`,
+    iconSize: [80, 40],
+    iconAnchor: [40, 0]
+  });
+}
+
+const aviationstackApiKey = '62b03a79042579fe5f64a5e45684a9cc';
+
 async function fetchClosestAirports(coords) {
-  const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];node(around:15000,${coords[0]},${coords[1]})[aeroway=airport];out;`;
+  const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];node(around:160934,${coords[0]},${coords[1]})[aeroway=airport];out;`;
 
   try {
     const response = await fetch(overpassUrl);
     const data = await response.json();
+    console.log('Overpass API response:', data); // Debug log
     const airports = data.elements.map(airport => ({
       name: airport.tags.name,
       code: airport.tags.iata || 'N/A',
@@ -132,6 +198,7 @@ async function fetchClosestAirports(coords) {
       latitude: airport.lat,
       longitude: airport.lon
     }));
+    console.log('Filtered airports:', airports); // Debug log
     return airports.sort((a, b) => a.distance - b.distance).slice(0, 3);
   } catch (error) {
     console.error('Error fetching airport data:', error);
