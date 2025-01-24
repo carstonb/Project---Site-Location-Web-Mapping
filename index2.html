@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<!-- Omnisharp Site Locations and Nearest Airports Web Mapping -->
+<html>
+<head>
+  <title>Plant Sites Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Omnisharp Plant Locations</h1>
+  </header>
+  <div class="left-button-container">
+    <button id="locate" class="locate" title="Locate">Locate</button>
+    <button id="reset-map" class="reset-map" title="Reset Map">Reset</button>
+  </div>
+  <div class="right-button-container">
+    <button class="toggle-distance-button" title="Show Straight Line Distances">Show Straight Line Distances</button>
+    <button class="toggle-road-button" title="Show Road Distances">Show Road Distances</button>
+    <button class="toggle-travel-button" title="Show Travel Information">Show Travel Information</button>
+    <button class="toggle-weather-button" title="Show Weather Information">Show Weather Information</button>
+  </div>
+  <div id="map"></div>
+  <div id="legend" class="legend">
+    <h3>Legend</h3>
+    <div><img src="Images/cow.png" alt="Beef Plant" /> Beef Plant: <span id="beef-count"></span></div>
+    <div><img src="Images/pig.png" alt="Pork Plant" /> Pork Plant: <span id="pork-count"></span></div>
+    <div><img src="Images/turkey.png" alt="Poultry Plant" /> Poultry Plant: <span id="poultry-count"></span></div>
+  </div>
+  <footer>
+    <p>&copy; 2025 Omnisharp, LLC</p>
+  </footer>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+  <script src="script2.js"></script>
+</body>
+</html>

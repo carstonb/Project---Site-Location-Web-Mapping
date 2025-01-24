@@ -57,6 +57,23 @@ body, button, .legend, .toggle-button, .toggle-road-button, .toggle-hq-button {
   background-color: #f0f0f0;
 }
 
+.leaflet-control .toggle-distance-button button,
+.leaflet-control .toggle-road-button button,
+.leaflet-control .toggle-travel-button button,
+.leaflet-control .toggle-weather-button button {
+  background-color: white;
+  border: 1px solid #ccc;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.leaflet-control .toggle-distance-button button:hover,
+.leaflet-control .toggle-road-button button:hover,
+.leaflet-control .toggle-travel-button button:hover,
+.leaflet-control .toggle-weather-button button:hover {
+  background-color: #f0f0f0;
+}
+
 /* New styles for header and footer */
 header {
   text-align: center;
@@ -205,5 +222,69 @@ footer {
 }
 
 .share-button button:hover {
+  background-color: #f0f0f0;
+}
+
+/* New styles for button container */
+.button-container {
+  position: absolute;
+  top: 70px; /* Adjusted to be below the header */
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.button-container button {
+  width: 250px; /* Set the width to the widest button */
+  background-color: white;
+  border: 1px solid #ccc;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.button-container button:hover {
+  background-color: #f0f0f0;
+}
+
+/* New styles for left and right button containers */
+.left-button-container {
+  position: absolute;
+  top: 50px; /* Adjusted to be below the header */
+  left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 1000; /* Ensure the buttons are above the map */
+}
+
+.right-button-container {
+  position: absolute;
+  top: 90px; /* Adjusted to be below the header */
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 1000; /* Ensure the buttons are above the map */
+}
+
+.left-button-container button {
+  width: 60px; /* Set the width to 60px */
+  background-color: white;
+  border: 1px solid #ccc;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.right-button-container button {
+  width: 250px; /* Set the width to 250px */
+  background-color: white;
+  border: 1px solid #ccc;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.left-button-container button:hover,
+.right-button-container button:hover {
   background-color: #f0f0f0;
 }

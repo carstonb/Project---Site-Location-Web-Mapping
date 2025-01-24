@@ -1,3 +1,5 @@
+console.log('Script loaded'); // Debug log
+
 // Omnisharp LLC 2025 Web Mapping Tool
 // Mapbox API key for routing
 // Aviationstack API key for airport data 62b03a79042579fe5f64a5e45684a9cc
@@ -6,10 +8,14 @@
 // Created by Carston Buehler
 
 const map = L.map('map').setView([37.8, -96], 4.5);
+console.log('Map initialized'); // Debug log
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors'
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  subdomains: 'abcd',
+  maxZoom: 19
 }).addTo(map);
+console.log('Tile layer added'); // Debug log
 
 // Define custom icons
 const plantIcon = L.icon({
@@ -437,6 +443,7 @@ sites.forEach(site => {
 
   const marker = L.marker(site.coords, { icon: icon }).addTo(map)
     .bindPopup(`${site.name}`);
+  console.log(`Marker added for ${site.name}`); // Debug log
 
   const closestAirports = findClosestAirports(site.coords);
 
@@ -580,11 +587,6 @@ specificConnections.forEach(connection => {
       icon: L.divIcon({
         className: 'distance-label',
         html: `${Math.round(distance)}`
-      })
-    }).addTo(map);
-    distanceLabel.setOpacity(0); // Initially invisible
-    usaLines.push({ line, distanceLabel, site1: fromSite, site2: toSite });
-  }
 });
 
 // Function to show/hide lines and distance labels connected to a site
@@ -1071,5 +1073,108 @@ function generateShareableLink() {
 // Event listener for the Share button
 document.getElementById('share').addEventListener('click', () => {
   const shareableLink = generateShareableLink();
+
   prompt('Copy this link to share the current map view:', shareableLink);
 });
+// Function to fetch plant information from the database
+async function fetchPlantInfo(plantName) {
+  // Replace with actual API call to fetch plant information
+  return {
+    contact: 'John Doe',
+    lastPM: '2023-09-15',
+    nextPM: '2024-03-15',
+    phone: '555-1234'
+  };
+}
+
+// Function to create a popup with plant information
+function createPlantInfoPopup(plantInfo) {
+  return `
+    <div>
+      <strong>Contact:</strong> ${plantInfo.contact}<br>
+      <strong>Last PM:</strong> ${plantInfo.lastPM}<br>
+      <strong>Next PM:</strong> ${plantInfo.nextPM}<br>
+      <strong>Phone:</strong> ${plantInfo.phone}
+    </div>
+  `;
+}
+
+// Add markers and calculate distances
+sites.forEach(site => {
+  let icon;
+  switch (site.icon) {
+    case 'turkey':
+      icon = turkeyIcon;
+      poultryCount++;
+      break;
+    case 'cow':
+      icon = plantIcon;
+      beefCount++;
+      break;
+    case 'pig':
+      icon = pigIcon;
+      porkCount++;
+      break;
+    case 'hq':
+      icon = hqIcon;
+      break;
+    default:
+      icon = plantIcon; // Default to plant icon if none specified
+  }
+
+  const marker = L.marker(site.coords, { icon: icon }).addTo(map)
+    .bindPopup(`${site.name}`);
+
+  marker.on('mouseover', async function() {
+    const plantInfo = await fetchPlantInfo(site.name);
+    marker.bindPopup(createPlantInfoPopup(plantInfo)).openPopup();
+  });
+
+  marker.on('mouseout', function() {
+    marker.closePopup();
+  });
+
+  marker.on('click', async function() {
+    if (showTravel) {
+      const closestAirports = await fetchClosestAirports(site.coords);
+      const airportBox = createAirportBox(closestAirports, site);
+      const airportMarker = L.marker([site.coords[0] - 0.02, site.coords[1]], { icon: airportBox }).addTo(map);
+      travelMarkers.push(airportMarker);
+
+      closestAirports.forEach(airport => {
+        const marker = L.marker([airport.latitude, airport.longitude], { icon: airportIcon, siteName: site.name }).addTo(map);
+        airportMarkers.push(marker);
+      });
+
+      if (!fromSite) {
+        fromSite = site;
+        marker.bindPopup(`${site.name}<br>From Site Selected`).openPopup();
+      } else if (!toSite) {
+        toSite = site;
+        marker.bindPopup(`${site.name}<br>To Site Selected`).openPopup();
+
+        const fromAirports = await fetchClosestAirports(fromSite.coords);
+        const toAirports = await fetchClosestAirports(toSite.coords);
+
+        const flightInfo = await fetchFlightInfo(fromAirports[0], toAirports[0]);
+
+        const travelInfo = L.divIcon({
+          className: 'travel-info',
+          html: `<div>Flights from ${fromAirports[0].name} to ${toAirports[0].name}:<br>${flightInfo.flights.map(flight => `${flight.airline}: ${flight.price}, ${flight.duration}`).join('<br>')}</div>`,
+          iconSize: [200, 100],
+          iconAnchor: [100, 0]
+        });
+
+        L.marker([(fromSite.coords[0] + toSite.coords[0]) / 2, (fromSite.coords[1] + toSite.coords[1]) / 2], { icon: travelInfo }).addTo(map);
+      }
+    } else {
+      marker.bindPopup(`${site.name}`).openPopup();
+    }
+  });
+});
+
+// Toggle buttons functionality
+document.querySelector('.toggle-distance-button').addEventListener('click', toggleLinesAndLabels);
+document.querySelector('.toggle-road-button').addEventListener('click', toggleRoadDistances);
+document.querySelector('.toggle-travel-button').addEventListener('click', toggleTravel);
+document.querySelector('.toggle-weather-button').addEventListener('click', toggleWeather);
